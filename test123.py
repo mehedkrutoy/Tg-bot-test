@@ -9,7 +9,7 @@ from pydantic import BaseModel, ValidationError
 class Model(BaseModel):
     x: str
 try:
-    Model()
+    Model(x="")
 except ValidationError as exc:
     print(repr(exc.errors()[0]['type']))
     #> 'missing'
@@ -19,7 +19,20 @@ router = Router()
 
 @router.message(Command(commands=["start"]))
 async def start(message: types.Message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, keyboard=[[types.KeyboardButton(text='Открыть Web Shop', web_app=types.WebAppInfo(url='https://mehedkrutoy.github.io/Tg-bot-test'))]])
+    markup = types.InlineKeyboardMarkup(inline_keyboard=[
+        [
+            types.InlineKeyboardButton(text='Открыть Web Shop', web_app=types.WebAppInfo(url='https://mehedkrutoy.github.io/Tg-bot-test'))
+        ]
+    ])
+
+    # markup = types.InlineKeyboardMarkup(inline_keyboard=[
+    #     [
+    #         types.InlineKeyboardButton(
+    #             text='Открыть Web Shop',
+    #             web_app=types.WebAppInfo(url='https://mehedkrutoy.github.io/Tg-bot-test')
+    #         )
+    #     ]
+    # ])
     await message.answer('Привет друг!', reply_markup=markup)
 
 
