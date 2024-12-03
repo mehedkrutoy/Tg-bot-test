@@ -24,18 +24,27 @@
     <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
 
     <script>
-        let tg = window.telegram.webapp;
+        let tg; // = window.telegram.webapp;
+
+        if (window.telegram != null)
+            tg = window.telegram.webapp;
+
         let buy = document.getElementById("buy");
+
+
         let order = document.getElementById("order");
 
         buy.addEventListener("click", () =>{
             document.getElementById("main").style.display = "none";
             document.getElementById("form").style.display = "block";
-            document.getElementById("user_name").value = tg.initDataUnsfe.user.first_name + " " + tg.initDataUnsfe.user.last_name;
-
+            // document.getElementById("user_name").value = tg.initDataUnsafe.user.first_name + " " + tg.initDataUnsafe.user.last_name;
+        if (tg != null)
+        document.getElementById("user_name").value = tg.initDataUnsafe.user.first_name + " " + tg.initDataUnsafe.user.last_name;
         });
 
         order.addEventListener("click", () => {
+            // tg.close();
+        if (window.telegram != null)
             tg.close();
         });
     </script>
