@@ -26,8 +26,8 @@
     <script>
         let tg; // = window.telegram.webapp;
 
-        if (window.telegram != null)
-            tg = window.telegram.webapp;
+        if (window.Telegram != null)
+            tg = window.Telegram.WebApp;
 
         let buy = document.getElementById("buy");
 
@@ -43,8 +43,8 @@
         });
 
         order.addEventListener("click", () => {
-            // tg.close();
-        if (window.telegram != null)
+            // tg.close();~
+        if (window.Telegram != null)
             tg.close();
         });
     </script>
