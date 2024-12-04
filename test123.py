@@ -2,6 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types.web_app_info import WebAppInfo
 from aiogram.filters import Command
+from aiogram.types import ContentType
 
 
 #скип ошибок
@@ -19,23 +20,19 @@ router = Router()
 
 @router.message(Command(commands=["start"]))
 async def start(message: types.Message):
-    markup = types.InlineKeyboardMarkup(inline_keyboard=[
+    markup = types.ReplyKeyboardMarkup(keyboard=[
         [
-            types.InlineKeyboardButton(text='Открыть Web Shop', web_app=types.WebAppInfo(url='https://mehedkrutoy.github.io/Tg-bot-test'))
+            types.KeyboardButton(text='Открыть Web Shop', web_app=types.WebAppInfo(url='https://mehedkrutoy.github.io/Tg-bot-test'))
         ]
     ])
-
-    # markup = types.InlineKeyboardMarkup(inline_keyboard=[
-    #     [
-    #         types.InlineKeyboardButton(
-    #             text='Открыть Web Shop',
-    #             web_app=types.WebAppInfo(url='https://mehedkrutoy.github.io/Tg-bot-test')
-    #         )
-    #     ]
-    # ])
     await message.answer('Привет друг!', reply_markup=markup)
 
-
+@router.message(lambda message: message.web_app_data is not None)
+async def web_app(message: types.Message):
+    if message.web_app_data:  # Проверяем, что web_app_data не None
+        await message.answer(message.web_app_data.data)
+    else:
+        await message.answer("Нет данных от Web App.")
 async def main():
     bot = Bot('7827206500:AAHSUfScTGHCHDLCUphwKW7P7Pm54YZ8Wmo')
     dp = Dispatcher()
