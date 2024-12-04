@@ -18,6 +18,7 @@
             <input type="text" placeholder="Name" id = "user_name">
             <input type="text" placeholder="Email" id = "user_email">
             <input type="text" placeholder="Number" id = "user_phone">
+            <div id="Error"></div>
             <button id = "order">Оформить</button>
         </form>
     </div>
@@ -25,15 +26,12 @@
 
     <script>
         let tg; // = window.telegram.webapp;
-
         if (window.Telegram != null)
             tg = window.Telegram.WebApp;
 
         let buy = document.getElementById("buy");
-
-
         let order = document.getElementById("order");
-
+        let.expand();
         buy.addEventListener("click", () =>{
             document.getElementById("main").style.display = "none";
             document.getElementById("form").style.display = "block";
@@ -43,6 +41,30 @@
         });
 
         order.addEventListener("click", () => {
+            document.getElementById("Error").innerText = '';
+            let name = document.getElementById("user_name").value;
+            let Email = document.getElementById("user_email").value;
+            let phone = document.getElementById("user_phone").value;
+            if(name.length < 5) {
+                document.getElementById("Error").innerText = 'Ошибка в имени;'
+                return;
+            }
+            if(Email.length < 5) {
+                document.getElementById("Error").innerText = 'Ошибка в Email;'
+                return;
+            }
+            if(phone.length < 5) {
+                document.getElementById("Error").innerText = 'Ошибка в phone;'
+                return;
+            }
+
+            let data = {
+                name: name,
+                Email: Email,
+                phone: phone
+            }
+            tg.sendData(JSON.stringify(data))
+        
             // tg.close();~
         if (window.Telegram != null)
             tg.close();
