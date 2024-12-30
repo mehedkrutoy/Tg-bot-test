@@ -237,7 +237,7 @@ async def unknown_command(message: Message):
 @router.callback_query(F.data == "activate_promo")
 async def activate_promo(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Form.waiting_for_promo)  # Устанавливаем состояние ожидания ввода промокода
-    await callback.message.answer("Введите ваш промокод:") 
+    await callback.message.answer("Введите ваш промокод:")
 
 @router.message(Form.waiting_for_promo)
 async def process_promo(message: Message, state: FSMContext):
@@ -253,15 +253,11 @@ async def process_promo(message: Message, state: FSMContext):
         return
 
     # Если промокод действителен, активируем его
-    bonus_amount = promo_data['amount']
-    
-    # Записываем использование промокода
-    await use_promo_code(user_id, promo_code)
+    bonus_amount = await activate_promo_code(user_id, promo_code)
 
-    # Обновляем баланс пользователя
-    await update_balance(user_id, bonus_amount)
-
-    await message.answer(f"✅ Промокод успешно активирован!\nНа ваш баланс начислено {bonus_amount} RUB")
+    if bonus_amount is not None:
+        await message.answer(f"✅ Промокод успешно активирован!\nНа ваш баланс начислено {bonus_amount} RUB")
+    else:
+        await message.answer("❌ Произошла ошибка при активации промокода.")
     
-    # Завершаем ожидание ввода промокода
-    await state.clear()  # Очищаем состояние после успешной активации 
+    await state.clear()  # Завершаем ожидание ввода промокода 

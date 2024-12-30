@@ -395,3 +395,22 @@ async def restart_command(message: Message):
         restart_bot()
     except Exception as e:
         await message.answer(f"❌ Ошибка при перезапуске: {str(e)}") 
+
+@router.message(Command("add_admin"))
+async def add_admin(message: Message):
+    if not is_admin(message.from_user.id):
+        await message.answer("❌ У вас нет доступа к этой команде.")
+        return
+
+    args = message.text.split()
+    if len(args) != 2:
+        await message.answer("Использование: /add_admin <user_id>")
+        return
+
+    try:
+        new_admin_id = int(args[1])
+        config.ADMIN_IDS[new_admin_id] = "New Admin"  # Вы можете добавить имя или другую информацию
+        await message.answer(f"✅ Пользователь с ID {new_admin_id} добавлен в администраторы.")
+        # Здесь можно добавить логику для сохранения изменений в файл или БД
+    except ValueError:
+        await message.answer("❌ Неверный формат ID. Пожалуйста, введите числовой ID.") 
