@@ -47,22 +47,40 @@ async def start_support_chat(callback: CallbackQuery, state: FSMContext):
         
     user_id = callback.from_user.id
     
+    # Проверяем, является ли пользователь модератором
     if user_id in config.MODERATOR_CHAT_IDS:
         await callback.message.answer("Вы модератор и не можете создать запрос в поддержку")
         return
         
+    # Проверяем, есть ли уже активный чат
     if user_id in support_chats:
         await callback.message.answer("У вас уже есть активный чат с поддержкой")
         return
         
+    # Создаем запись в словаре активных чатов
     support_chats[user_id] = {
         "user_id": user_id,
         "username": callback.from_user.username or "Неизвестный пользователь"
     }
     
+    # Уведомляем модераторов о новом запросе
+    for moderator_id in config.MODERATOR_CHAT_IDS:
+        try:
+            await callback.bot.send_message(
+                moderator_id,
+                f"📩 Новый запрос в поддержку\n"
+                f"От: @{callback.from_user.username or 'Неизвестный'}\n"
+                f"ID: {user_id}"
+            )
+        except Exception as e:
+            print(f"Ошибка при уведомлении модератора {moderator_id}: {e}")
+    
+    # Устанавливаем состояние чата
     await state.set_state(Form.in_support_chat)
+    
+    # Отправляем сообщение пользователю
     await callback.message.answer(
-        "Чат с поддержкой создан. Отправьте ваше сообщение.",
+        "✅ Чат с поддержкой создан. Отправьте ваше сообщение.",
         reply_markup=get_end_chat_keyboard()
     )
 
@@ -72,27 +90,16 @@ async def handle_support_message(message: Message, state: FSMContext):
         return
         
     user_id = message.from_user.id
+    print(f"Получено сообщение от пользователя {user_id}")
+    print(f"Текущие активные чаты: {support_chats}")
+    print(f"Модераторы: {list(config.MODERATOR_CHAT_IDS.keys())}")
     
     # Проверяем, активен ли чат
     if user_id not in support_chats:
+        print(f"Чат не активен для пользователя {user_id}")
         await state.clear()
         await message.answer(
             "Чат с поддержкой был завершен",
-            reply_markup=get_start_keyboard()
-        )
-        return
-        
-    if message.text == "Завершить чат":
-        await end_support_chat(user_id, state, message.bot)
-        remove_keyboard = ReplyKeyboardMarkup(
-            keyboard=[], resize_keyboard=True, remove_keyboard=True
-        )
-        await message.answer(
-            "Чат с поддержкой завершен",
-            reply_markup=remove_keyboard
-        )
-        await message.answer(
-            "Выберите действие:",
             reply_markup=get_start_keyboard()
         )
         return
@@ -100,53 +107,23 @@ async def handle_support_message(message: Message, state: FSMContext):
     # Пересылка сообщений модераторам
     for moderator_id in config.MODERATOR_CHAT_IDS:
         try:
-            # Информация о пользователе
+            print(f"Пытаемся отправить сообщение модератору {moderator_id}")
             user_info = (
                 f"Сообщение от {message.from_user.username or 'Неизвестный'}\n"
                 f"ID: {message.from_user.id}\n"
-                f"Модератор: {config.MODERATOR_CHAT_IDS[moderator_id]}\n"
             )
             
-            # Пересылаем разные типы сообщений
             if message.text:
                 await message.bot.send_message(
-                    moderator_id,
-                    f"{user_info}\nТекст: {message.text}"
+                    chat_id=moderator_id,
+                    text=f"{user_info}\nТекст: {message.text}"
                 )
-            elif message.photo:
-                await message.bot.send_photo(
-                    moderator_id,
-                    message.photo[-1].file_id,
-                    caption=user_info
-                )
-            elif message.video:
-                await message.bot.send_video(
-                    moderator_id,
-                    message.video.file_id,
-                    caption=user_info
-                )
-            elif message.document:
-                await message.bot.send_document(
-                    moderator_id,
-                    message.document.file_id,
-                    caption=user_info
-                )
-            elif message.voice:
-                await message.bot.send_voice(
-                    moderator_id,
-                    message.voice.file_id,
-                    caption=user_info
-                )
-            elif message.sticker:
-                # Сначала отправляем информацию о пользователе
-                await message.bot.send_message(moderator_id, user_info)
-                # Затем отправляем стикер
-                await message.bot.send_sticker(
-                    moderator_id,
-                    message.sticker.file_id
-                )
+                print(f"Сообщение успешно отправлено модератору {moderator_id}")
         except Exception as e:
-            continue
+            print(f"Ошибка при отправке сообщения модератору {moderator_id}: {str(e)}")
+
+    # Подтверждение пользователю
+    await message.answer("✅ Сообщение отправлено в поддержку")
 
 async def end_support_chat(user_id: int, state: FSMContext, bot=None):
     if user_id in support_chats:
