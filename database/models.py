@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, create_engine, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, create_engine, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
@@ -32,10 +32,9 @@ class PromoCode(Base):
     is_percentage = Column(Integer, default=0)
 
 class UsedPromoCode(Base):
-    __tablename__ = 'used_promo_codes'
+    __tablename__ = 'used_promocodes'
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'))
-    promo_code = Column(String)
-    used_at = Column(DateTime, default=datetime.now)
-    username = Column(String)
+    user_id = Column(Integer, nullable=False)
+    promo_code = Column(String, nullable=False)
+    used_at = Column(DateTime, default=datetime.utcnow)

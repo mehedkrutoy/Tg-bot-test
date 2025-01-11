@@ -241,23 +241,43 @@ async def activate_promo(callback: CallbackQuery, state: FSMContext):
 
 @router.message(Form.waiting_for_promo)
 async def process_promo(message: Message, state: FSMContext):
-    promo_code = message.text.strip()  # Получаем введенный промокод
+    if not message.text or not message.from_user:
+        return
+        
     user_id = message.from_user.id
-
-    # Проверяем наличие промокода в базе данных
-    promo_data = await check_promo_code(promo_code, user_id)
+    promo_code = message.text.strip()
     
-    if not promo_data:
-        await message.answer("❌ Промокод недействителен или уже был использован.")
-        await state.clear()  # Очищаем состояние
+    # Проверяем, использовал ли пользователь этот промокод
+    if await check_used_promo(user_id, promo_code):
+        await message.answer(
+            "❌ Вы уже использовали этот промокод!",
+            reply_markup=get_profile_keyboard(user_id)
+        )
+        await state.clear()
         return
 
-    # Если промокод действителен, активируем его
-    bonus_amount = await activate_promo_code(user_id, promo_code)
+    # Проверяем валидность промокода
+    promo_data = await check_promo_code(promo_code)
+    if not promo_data:
+        await message.answer(
+            "❌ Промокод недействителен или закончились использования",
+            reply_markup=get_profile_keyboard(user_id)
+        )
+        await state.clear()
+        return
 
+    # Активируем промокод и начисляем бонус
+    bonus_amount = await activate_promo_code(user_id, promo_code)
     if bonus_amount is not None:
-        await message.answer(f"✅ Промокод успешно активирован!\nНа ваш баланс начислено {bonus_amount} RUB")
+        await message.answer(
+            f"✅ Промокод успешно активирован!\n"
+            f"💰 На ваш баланс начислено {bonus_amount} RUB",
+            reply_markup=get_start_keyboard()
+        )
     else:
-        await message.answer("❌ Произошла ошибка при активации промокода.")
+        await message.answer(
+            "❌ Произошла ошибка при активации промокода",
+            reply_markup=get_profile_keyboard(user_id)
+        )
     
-    await state.clear()  # Завершаем ожидание ввода промокода 
+    await state.clear() 

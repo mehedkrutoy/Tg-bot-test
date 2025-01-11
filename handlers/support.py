@@ -113,14 +113,63 @@ async def handle_support_message(message: Message, state: FSMContext):
                 f"ID: {message.from_user.id}\n"
             )
             
+            # Обработка разных типов сообщений
             if message.text:
                 await message.bot.send_message(
                     chat_id=moderator_id,
                     text=f"{user_info}\nТекст: {message.text}"
                 )
-                print(f"Сообщение успешно отправлено модератору {moderator_id}")
+            elif message.photo:
+                await message.bot.send_photo(
+                    chat_id=moderator_id,
+                    photo=message.photo[-1].file_id,
+                    caption=f"{user_info}\n{message.caption or ''}"
+                )
+            elif message.video:
+                await message.bot.send_video(
+                    chat_id=moderator_id,
+                    video=message.video.file_id,
+                    caption=f"{user_info}\n{message.caption or ''}"
+                )
+            elif message.voice:
+                await message.bot.send_voice(
+                    chat_id=moderator_id,
+                    voice=message.voice.file_id,
+                    caption=user_info
+                )
+            elif message.document:
+                await message.bot.send_document(
+                    chat_id=moderator_id,
+                    document=message.document.file_id,
+                    caption=f"{user_info}\n{message.caption or ''}"
+                )
+            elif message.audio:
+                await message.bot.send_audio(
+                    chat_id=moderator_id,
+                    audio=message.audio.file_id,
+                    caption=f"{user_info}\n{message.caption or ''}"
+                )
+            elif message.sticker:
+                await message.bot.send_message(
+                    chat_id=moderator_id,
+                    text=user_info
+                )
+                await message.bot.send_sticker(
+                    chat_id=moderator_id,
+                    sticker=message.sticker.file_id
+                )
+            elif message.animation:
+                await message.bot.send_animation(
+                    chat_id=moderator_id,
+                    animation=message.animation.file_id,
+                    caption=f"{user_info}\n{message.caption or ''}"
+                )
+            
+            print(f"Сообщение успешно отправлено модератору {moderator_id}")
+            
         except Exception as e:
             print(f"Ошибка при отправке сообщения модератору {moderator_id}: {str(e)}")
+            continue
 
     # Подтверждение пользователю
     await message.answer("✅ Сообщение отправлено в поддержку")

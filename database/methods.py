@@ -106,20 +106,37 @@ async def create_promo_code(code: str, amount: float, uses: int, is_percentage: 
     finally:
         session.close() 
 
-async def use_promo_code(user_id: int, code: str) -> bool:
-    """Записывает использование промокода пользователем"""
+async def check_used_promo(user_id: int, promo_code: str) -> bool:
+    """Проверяет, использовал ли пользователь конкретный промокод"""
     session = Session()
     try:
+        used_promo = session.query(UsedPromoCode).filter(
+            UsedPromoCode.user_id == user_id,
+            UsedPromoCode.promo_code == promo_code
+        ).first()
+        return bool(used_promo)
+    finally:
+        session.close()
+
+async def use_promo_code(user_id: int, promo_code: str) -> bool:
+    """Записывает использование промокода"""
+    session = Session()
+    try:
+        # Проверяем, не использовал ли пользователь этот промокод
+        if await check_used_promo(user_id, promo_code):
+            return False
+            
+        # Записываем использование промокода
         used_promo = UsedPromoCode(
             user_id=user_id,
-            promo_code=code,
-            used_at=datetime.now()
+            promo_code=promo_code,
+            used_at=datetime.utcnow()
         )
         session.add(used_promo)
-        session.commit()  # Сохраняем изменения
+        session.commit()
         return True
     except Exception as e:
-        session.rollback()  # Откатываем изменения в случае ошибки
+        session.rollback()
         logger.error(f"Ошибка при использовании промокода: {e}")
         return False
     finally:
@@ -203,21 +220,6 @@ async def get_user(user_id: int) -> Optional[User]:
     finally:
         session.close() 
 
-async def check_used_promo(user_id: int, promo_code: Optional[str]) -> bool:
-    session = Session()
-
-    if not promo_code:  # Добавляем проверку на None
-        return False
-        
-    try:
-        used_promo = session.query(UsedPromoCode).filter(
-            UsedPromoCode.user_id == user_id,
-            UsedPromoCode.promo_code == promo_code
-        ).first()
-        return bool(used_promo)
-    finally:
-        session.close()
-
 async def has_used_any_promo(user_id: int) -> bool:
     session = Session()
     try:
@@ -229,30 +231,36 @@ async def has_used_any_promo(user_id: int) -> bool:
         session.close()
 
 async def activate_promo_code(user_id: int, promo_code: str) -> Optional[float]:
-    """Активирует промокод и начисляет бонус."""
+    """Активирует промокод и начисляет бонус"""
     session = Session()
     try:
+        # Проверяем, не использовал ли пользователь этот промокод
+        if await check_used_promo(user_id, promo_code):
+            return None
+            
         promo = session.query(PromoCode).filter(PromoCode.code == promo_code).first()
         if not promo or promo.uses_left <= 0:
             return None
         
-        # Записываем использование промокода
-        used_promo = UsedPromoCode(
-            user_id=user_id,
-            promo_code=promo_code,
-            used_at=datetime.now()
-        )
-        session.add(used_promo)
-        
-        # Уменьшаем количество использований
+        # Уменьшаем количество доступных использований
         promo.uses_left -= 1
         
         # Обновляем баланс пользователя
         user = session.query(User).filter(User.user_id == user_id).first()
         if user:
-            user.balance += promo.amount  # Добавляем сумму на баланс
-            session.commit()  # Сохраняем изменения
-            return promo.amount
+            bonus_amount = promo.amount
+            user.balance += bonus_amount
+            
+            # Записываем использование промокода
+            used_promo = UsedPromoCode(
+                user_id=user_id,
+                promo_code=promo_code,
+                used_at=datetime.utcnow()
+            )
+            session.add(used_promo)
+            
+            session.commit()
+            return bonus_amount
         
         return None
     except Exception as e:
